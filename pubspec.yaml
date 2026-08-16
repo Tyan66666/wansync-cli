@@ -1,0 +1,14 @@
+name: wansync_cli_workspace
+description: WanSync CLI monorepo（sync_core + wansync_cli）。
+publish_to: none
+
+environment:
+  sdk: ^3.11.3
+
+# workspace 聚合：根目录一条命令即可解析全部包
+workspace:
+  - packages/sync_core
+  - packages/wansync_cli
+
+dev_dependencies:
+  lints: ^5.0.0

@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test (sync_core + wansync_cli)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - name: Install dependencies
+        run: dart pub get
+      - name: Analyze
+        run: dart analyze
+      - name: Test sync_core
+        working-directory: packages/sync_core
+        run: dart test
+      - name: Test wansync_cli
+        working-directory: packages/wansync_cli
+        run: dart test
+
+  build:
+    name: Build binary (${{ matrix.target }})
+    needs: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-x64
+          - os: ubuntu-24.04-arm
+            target: linux-arm64   # 骁龙 845 / 树莓派等 ARM64 设备
+          - os: macos-latest
+            target: macos-arm64
+          - os: windows-latest
+            target: windows-x64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - name: Install dependencies
+        working-directory: packages/wansync_cli
+        run: dart pub get
+      - name: Compile
+        working-directory: packages/wansync_cli
+        run: dart compile exe bin/wansync.dart -o dist/wansync-${{ matrix.target }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wansync-${{ matrix.target }}
+          path: packages/wansync_cli/dist/wansync-${{ matrix.target }}
