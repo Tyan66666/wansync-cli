@@ -116,6 +116,62 @@ void main() {
     });
   });
 
+  group('runSync 配置校验先于网络', () {
+    late Directory tmp;
+
+    setUp(
+      () => tmp = Directory.systemTemp.createTempSync('wansync-preflight-'),
+    );
+    tearDown(() => tmp.deleteSync(recursive: true));
+
+    CliOptions opts(String config) =>
+        CliOptions(configPath: config, stateDir: tmp.path);
+
+    test('缺 OneLap 账号：抛 InvalidConfigException，不发网络请求', () async {
+      final f = File('${tmp.path}/nouser.json');
+      f.writeAsStringSync(
+        jsonEncode({
+          'version': 1,
+          'settings': {
+            'sync': {'uploadToStrava': true},
+          },
+        }),
+      );
+      final config = loadConfig(f.path);
+      expect(
+        () => runSync(opts(f.path), config),
+        throwsA(
+          predicate(
+            (e) => e is InvalidConfigException && e.message.contains('OneLap'),
+          ),
+        ),
+      );
+    });
+
+    test('Strava web 模式：抛 InvalidConfigException，不发网络请求', () async {
+      final f = File('${tmp.path}/web.json');
+      f.writeAsStringSync(
+        jsonEncode({
+          'version': 1,
+          'settings': {
+            'onelap': {'username': 'u', 'password': 'p'},
+            'strava': {'uploadMode': 'web'},
+            'sync': {'uploadToStrava': true},
+          },
+        }),
+      );
+      final config = loadConfig(f.path);
+      expect(
+        () => runSync(opts(f.path), config),
+        throwsA(
+          predicate(
+            (e) => e is InvalidConfigException && e.message.contains('web 模式'),
+          ),
+        ),
+      );
+    });
+  });
+
   group('writeBackStravaTokens', () {
     late Directory tmp;
 

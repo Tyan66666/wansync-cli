@@ -88,26 +88,27 @@ Future<SyncSummary> runSync(CliOptions options, AppConfig config) async {
   final stateFile = File('${options.stateDir}/state.json');
   final downloadDir = Directory('${options.stateDir}/fit_downloads');
 
+  // === 配置校验（先于任何网络调用，配置错立即报错） ===
+  if (get(SettingsService.keyOneLapUsername).isEmpty) {
+    throw const InvalidConfigException('配置缺少 OneLap 账号（onelap.username）');
+  }
+  if (uploadToStrava && get(SettingsService.keyStravaUploadMode) == 'web') {
+    throw const InvalidConfigException(
+      '配置中 Strava 为 web 模式，CLI 仅支持 API 模式（请在 App 中重新导出）',
+    );
+  }
+
   // OneLap（必用：数据源）
   final oneLap = OneLapClient(
     baseUrl: 'https://www.onelap.cn',
     username: get(SettingsService.keyOneLapUsername),
     password: get(SettingsService.keyOneLapPassword),
   );
-  if (oneLap.username.isEmpty) {
-    throw const InvalidConfigException('配置缺少 OneLap 账号（onelap.username）');
-  }
   await oneLap.login();
 
   // Strava（仅 API 模式）
   StravaClient? strava;
-  final stravaUploadMode = get(SettingsService.keyStravaUploadMode);
   if (uploadToStrava) {
-    if (stravaUploadMode == 'web') {
-      throw const InvalidConfigException(
-        '配置中 Strava 为 web 模式，CLI 仅支持 API 模式（请在 App 中重新导出）',
-      );
-    }
     strava = StravaClient(
       clientId: get(SettingsService.keyStravaClientId),
       clientSecret: get(SettingsService.keyStravaClientSecret),
