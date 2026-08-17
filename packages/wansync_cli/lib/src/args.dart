@@ -90,6 +90,52 @@ String usageText(ArgParser parser) {
 
 ${parser.usage}
 
+配置文件:
+  --config 指向 App「设置 → 导出配置」生成的 JSON（也可手工编写，结构一致）：
+
+  {
+    "version": 1,                                // 格式版本，必须为 1
+    "appVersion": "1.0.23",
+    "exportedAt": "2026-08-16T00:00:00.000Z",
+    "settings": {
+      "onelap": {                                // 必填：数据源账号
+        "username": "...",
+        "password": "..."
+      },
+      "strava": {                                // Strava 仅支持 uploadMode: "api"
+        "uploadMode": "api",
+        "clientId": "...",
+        "clientSecret": "...",
+        "refreshToken": "...",
+        "accessToken": "...",
+        "expiresAt": "..."
+      },
+      "xingzhe": {                               // 需先在 App 登录获得 sessionId
+        "sessionId": "..."
+      },
+      "intervalsIcu": {
+        "athleteId": "...",
+        "apiKey": "..."
+      },
+      "outbase": {                               // 需先在 App 登录获得 sessionId
+        "sessionId": "..."
+      },
+      "sync": {
+        "lookbackDays": 3,                       // 默认回看天数
+        "gcjCorrectionEnabled": false,           // GCJ-02 → WGS-84 坐标转换
+        "uploadToStrava": true,                  // 各平台上送开关
+        "uploadToXingzhe": false,
+        "uploadToIntervalsIcu": false,
+        "uploadToOutbase": false
+      }
+    }
+  }
+
+  说明:
+  - onelap 必填；其余平台按 sync.uploadTo* 开关决定是否启用，也可用 --platform 临时覆盖
+  - Strava access token 过期会自动刷新，并把新 token 回写到本配置文件
+  - 配置含账号密码与 token，请勿提交到版本库
+
 示例:
   wansync sync --config app-config.json
   wansync sync -c app-config.json --lookback 7 --platform strava,xingzhe

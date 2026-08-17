@@ -20,6 +20,50 @@ dart compile exe packages/wansync_cli/bin/wansync.dart -o wansync
 
 退出码：`0` 无失败 · `1` 有失败 · `2` 参数错误 · `3` 配置无效 · `4` 运行时错误。
 
+## 配置文件
+
+`--config` 指向 **App「设置 → 导出配置」生成的 JSON**，也可手工编写（结构一致，`wansync --help` 中有完整注释版）：
+
+```json
+{
+  "version": 1,
+  "appVersion": "1.0.23",
+  "exportedAt": "2026-08-16T00:00:00.000Z",
+  "settings": {
+    "onelap": { "username": "...", "password": "..." },
+    "strava": {
+      "uploadMode": "api",
+      "clientId": "...",
+      "clientSecret": "...",
+      "refreshToken": "...",
+      "accessToken": "...",
+      "expiresAt": "..."
+    },
+    "xingzhe": { "sessionId": "..." },
+    "intervalsIcu": { "athleteId": "...", "apiKey": "..." },
+    "outbase": { "sessionId": "..." },
+    "sync": {
+      "lookbackDays": 3,
+      "gcjCorrectionEnabled": false,
+      "uploadToStrava": true,
+      "uploadToXingzhe": false,
+      "uploadToIntervalsIcu": false,
+      "uploadToOutbase": false
+    }
+  }
+}
+```
+
+要点：
+
+| 项目 | 说明 |
+|------|------|
+| `onelap` | **必填**（数据源）。其余平台按 `sync.uploadTo*` 开关决定是否启用 |
+| `strava.uploadMode` | CLI **仅支持 `"api"`**；`web` 模式会直接报配置错误 |
+| Strava token | access token 过期时 CLI 自动用 refresh token 刷新，并把新 token **原地回写**到配置文件 |
+| `xingzhe` / `outbase` | 需先在 App 中登录（获得 sessionId）再导出；sessionId 过期后需在 App 重新登录导出 |
+| `--platform` | 可临时覆盖 `uploadTo*` 开关，不修改配置文件 |
+
 ## 仓库结构
 
 ```
