@@ -24,6 +24,66 @@ dart compile exe packages/wansync_cli/bin/wansync.dart -o wansync
 
 退出码：`0` 无失败 · `1` 有失败 · `2` 参数错误 · `3` 配置无效 · `4` 运行时错误。
 
+## 获取二进制（按你的设备选一种）
+
+**方式 A：GitHub Actions 下载（推荐，无需本地装 Dart）**
+
+把仓库推到 GitHub 后，CI 会自动编译 4 个平台产物并作为 artifact 上传：
+
+| artifact 名 | 适用设备 |
+|---|---|
+| `wansync-linux-x64` | 普通 Linux 服务器 / x64 电脑 |
+| `wansync-linux-arm64` | **骁龙 845 手机（Ubuntu）**、树莓派、ARM 盒子 |
+| `wansync-macos-arm64` | Mac（Apple Silicon） |
+| `wansync-windows-x64` | Windows |
+
+下载后解压得到单个可执行文件，直接拷贝到设备上。
+
+**方式 B：在目标设备上自己编译**
+
+```bash
+# 在手机 Ubuntu / 服务器上（需先装 Dart SDK）
+curl -fsSL https://dart.dev/install.sh | bash   # 或 apt install dart
+git clone https://github.com/你的账号/wansync-cli.git
+cd wansync-cli/packages/wansync_cli
+dart pub get
+dart compile exe bin/wansync.dart -o ~/wansync
+```
+
+**方式 C：本机编译后拷贝（同架构才行）**
+
+```bash
+cd wansync-cli/packages/wansync_cli
+dart compile exe bin/wansync.dart -o wansync
+```
+
+> 注意：编译出的二进制只能在**相同操作系统 + 相同 CPU 架构**上运行。
+> 例如 macOS 上编的（Mach-O）不能拷到 Linux 手机上；x64 编的不能拷到 ARM 设备上。
+> 手机场景务必用方式 A 的 `wansync-linux-arm64` 或方式 B 在手机上直接编。
+
+## 在骁龙 845 手机（Ubuntu）上运行
+
+```bash
+# 1. 把二进制和配置放到手机（adb 或 U 盘均可）
+#    配置 = App「设置 → 导出配置」生成的 JSON 文件
+mkdir -p ~/wansync ~/.wansync
+cp wansync ~/wansync/
+cp app-config.json ~/wansync/
+
+# 2. 手动跑一次
+~/wansync/wansync sync -c ~/wansync/app-config.json
+
+# 3. 定时自动同步（cron，每 30 分钟一次）
+crontab -e
+# 添加一行：
+*/30 * * * * ~/wansync/wansync sync -c ~/wansync/app-config.json --lookback 1 >> ~/wansync/sync.log 2>&1
+```
+
+说明：
+- 第一次运行会把 Strava access token 刷新并**回写**到 `app-config.json`（若过期）
+- 判重状态存在 `~/.wansync/state.json`，第二次起跳过已同步的活动，不会重复上传
+- 查看最近结果：`tail ~/wansync/sync.log`
+
 ## 配置文件
 
 `--config` 指向 **App「设置 → 导出配置」生成的 JSON**，也可手工编写（结构一致，`wansync --help` 中有完整注释版）：
