@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:json5/json5.dart';
 import 'package:sync_core/sync_core.dart';
 
 import 'cli_options.dart';
@@ -19,6 +20,7 @@ bool resolveGcjCorrection(bool? cliValue, bool configValue) {
 }
 
 /// 读取配置文件 JSON 并校验（AppConfig.fromJson 自带版本校验）。
+/// 支持 JSONC：配置可带 `//` 与 `/* */` 注释（json5 解析）。
 AppConfig loadConfig(String path) {
   final File file = File(path);
   if (!file.existsSync()) {
@@ -32,9 +34,11 @@ AppConfig loadConfig(String path) {
   }
   final Map<String, dynamic> json;
   try {
-    json = jsonDecode(content) as Map<String, dynamic>;
+    json = json5Decode(content) as Map<String, dynamic>;
   } catch (_) {
-    throw const InvalidConfigException('配置文件格式无效：不是合法 JSON');
+    throw const InvalidConfigException(
+      '配置文件格式无效：不是合法 JSON（支持 // 与 /* */ 注释）',
+    );
   }
   try {
     return AppConfig.fromJson(json);
@@ -43,7 +47,28 @@ AppConfig loadConfig(String path) {
   }
 }
 
-/// 把 strava 段的新 token 回写到 --config 指向的 JSON 文件（原地更新）。
+/// 在 JSONC 原文中定位 `"section": {` 起始位置后的指定键，把字符串值替换为新值。
+/// 返回替换后的完整文本；section 或键不存在时返回 null（调用方回退全量重写）。
+/// 用于 token / sessionId 回写时保留用户写的注释与格式。
+String? replaceStringValueInSection(
+  String source,
+  String sectionKey,
+  String key,
+  String newValue,
+) {
+  final sectionMatch =
+      RegExp('"${RegExp.escape(sectionKey)}"\\s*:\\s*\\{').firstMatch(source);
+  if (sectionMatch == null) return null;
+  final sectionBody = source.substring(sectionMatch.end);
+  final keyPattern = RegExp('"${RegExp.escape(key)}"\\s*:\\s*"([^"]*)"');
+  final keyMatch = keyPattern.firstMatch(sectionBody);
+  if (keyMatch == null) return null;
+  final absStart = sectionMatch.end + keyMatch.start;
+  return source.replaceRange(absStart, sectionMatch.end + keyMatch.end,
+      '"$key": "$newValue"');
+}
+
+/// 把 strava 段的新 token 回写到 --config 指向的 JSON 文件（原地更新，保留注释）。
 Future<void> writeBackStravaTokens(
   String configPath,
   AppConfig config, {
@@ -51,6 +76,35 @@ Future<void> writeBackStravaTokens(
   required String refreshToken,
   required int expiresAt,
 }) async {
+  final File file = File(configPath);
+  var source = '';
+  try {
+    source = file.readAsStringSync();
+  } catch (_) {
+    // 读取失败按空文本处理，回退全量重写
+  }
+  var updated = source;
+  var allReplaced = true;
+  for (final entry in {
+    'accessToken': accessToken,
+    'refreshToken': refreshToken,
+    'expiresAt': '$expiresAt',
+  }.entries) {
+    final next = replaceStringValueInSection(
+        updated, 'strava', entry.key, entry.value);
+    if (next == null) {
+      allReplaced = false;
+      break;
+    }
+    updated = next;
+  }
+  if (allReplaced) {
+    // 原文精准替换成功：注释与其余格式原样保留
+    await file.writeAsString(updated);
+    return;
+  }
+
+  // 键不存在（用户配置文件缺字段）：回退全量重写
   final settings = config.settings;
   final strava = _castMap(settings['strava']);
   strava['accessToken'] = accessToken;
@@ -58,10 +112,9 @@ Future<void> writeBackStravaTokens(
   strava['expiresAt'] = '$expiresAt';
   settings['strava'] = strava;
 
-  final updated = config.toJson();
-  await File(
-    configPath,
-  ).writeAsString(const JsonEncoder.withIndent('  ').convert(updated));
+  await file.writeAsString(
+    const JsonEncoder.withIndent('  ').convert(config.toJson()),
+  );
 }
 
 Map<String, dynamic> _castMap(dynamic value) {
@@ -146,14 +199,24 @@ Future<SyncSummary> runSync(CliOptions options, AppConfig config) async {
       password: get(SettingsService.keyXingzhePassword),
       sessionId: get(SettingsService.keyXingzheSessionId),
       onSessionPersist: (sessionId) async {
-        // 回写 xingzhe.sessionId 到配置文件
-        final settingsMap = config.settings;
-        final xz = _castMap(settingsMap['xingzhe']);
-        xz['sessionId'] = sessionId;
-        settingsMap['xingzhe'] = xz;
-        await File(options.configPath).writeAsString(
-          const JsonEncoder.withIndent('  ').convert(config.toJson()),
-        );
+        // 回写 xingzhe.sessionId 到配置文件（精准替换，保留注释）
+        final configFile = File(options.configPath);
+        final source = configFile.existsSync()
+            ? configFile.readAsStringSync()
+            : '';
+        final updated = replaceStringValueInSection(
+            source, 'xingzhe', 'sessionId', sessionId);
+        if (updated != null) {
+          await configFile.writeAsString(updated);
+        } else {
+          final settingsMap = config.settings;
+          final xz = _castMap(settingsMap['xingzhe']);
+          xz['sessionId'] = sessionId;
+          settingsMap['xingzhe'] = xz;
+          await configFile.writeAsString(
+            const JsonEncoder.withIndent('  ').convert(config.toJson()),
+          );
+        }
       },
     );
   }

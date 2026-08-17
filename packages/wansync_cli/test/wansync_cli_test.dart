@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:json5/json5.dart';
 import 'package:sync_core/sync_core.dart';
 import 'package:test/test.dart';
 import 'package:wansync_cli/src/args.dart';
@@ -139,6 +140,51 @@ void main() {
         ),
       );
     });
+
+    test('JSONC：行注释与块注释可解析', () {
+      final f = write(
+        'commented.json',
+        '''
+{
+  // 行注释
+  "version": 1, /* 块注释 */
+  "appVersion": "1.0.0",
+  "settings": {
+    "onelap": { "username": "u", "password": "p" }, // 行尾注释
+    "strava": {
+      "uploadMode": "api",
+      // 字符串内 // 不应被当作注释
+      "clientSecret": "https://example.com/a//b"
+    }
+  }
+}
+''',
+      );
+      final config = loadConfig(f.path);
+      expect(config.version, 1);
+      expect(config.settings['onelap']['username'], 'u');
+      final strava = config.settings['strava'] as Map<String, dynamic>;
+      expect(strava['clientSecret'], 'https://example.com/a//b');
+    });
+
+    test('JSONC：URL 与转义引号不被注释逻辑误伤', () {
+      final f = write(
+        'url.json',
+        r'''
+{
+  "version": 1,
+  "settings": {
+    "onelap": { "username": "a\"b", "password": "https://x.com/p" },
+    "sync": { "lookbackDays": 3 }
+  }
+}
+''',
+      );
+      final config = loadConfig(f.path);
+      final onelap = config.settings['onelap'] as Map<String, dynamic>;
+      expect(onelap['username'], 'a"b');
+      expect(onelap['password'], 'https://x.com/p');
+    });
   });
 
   group('resolveGcjCorrection', () {
@@ -252,6 +298,79 @@ void main() {
       expect(strava['refreshToken'], 'newr');
       expect(strava['expiresAt'], '9999999999');
       expect(strava['clientId'], 'cid'); // 其余字段保留
+    });
+
+    test('带注释的配置：回写后注释保留', () async {
+      final f = File('${tmp.path}/commented.json');
+      f.writeAsStringSync(
+        '''
+{
+  "version": 1, // 版本注释
+  "appVersion": "1.0.0",
+  "settings": {
+    "strava": { // strava 段
+      "uploadMode": "api",
+      "accessToken": "old", // 旧 token
+      "refreshToken": "oldr",
+      "expiresAt": "0"
+    }
+  }
+}
+''',
+      );
+      final config = loadConfig(f.path);
+
+      await writeBackStravaTokens(
+        f.path,
+        config,
+        accessToken: 'new',
+        refreshToken: 'newr',
+        expiresAt: 9999999999,
+      );
+
+      final raw = f.readAsStringSync();
+      // 注释还在
+      expect(raw, contains('// 版本注释'));
+      expect(raw, contains('// strava 段'));
+      expect(raw, contains('// 旧 token'));
+      // 值已更新
+      expect(raw, contains('"accessToken": "new"'));
+      expect(raw, contains('"refreshToken": "newr"'));
+      expect(raw, contains('"expiresAt": "9999999999"'));
+      // 仍是合法 JSONC
+      final reloaded =
+          json5Decode(raw) as Map<String, dynamic>;
+      final strava = reloaded['settings']['strava'] as Map<String, dynamic>;
+      expect(strava['accessToken'], 'new');
+    });
+
+    test('缺失键时回退全量重写（无注释场景）', () async {
+      final f = File('${tmp.path}/noexpires.json');
+      f.writeAsStringSync(
+        jsonEncode({
+          'version': 1,
+          'appVersion': '1.0.0',
+          'exportedAt': '2026-01-01',
+          'settings': {
+            'strava': {'uploadMode': 'api', 'accessToken': 'old'},
+          },
+        }),
+      );
+      final config = loadConfig(f.path);
+
+      await writeBackStravaTokens(
+        f.path,
+        config,
+        accessToken: 'new',
+        refreshToken: 'newr',
+        expiresAt: 9999999999,
+      );
+
+      final reloaded = jsonDecode(f.readAsStringSync()) as Map<String, dynamic>;
+      final strava = reloaded['settings']['strava'] as Map<String, dynamic>;
+      expect(strava['accessToken'], 'new');
+      expect(strava['refreshToken'], 'newr');
+      expect(strava['expiresAt'], '9999999999');
     });
   });
 

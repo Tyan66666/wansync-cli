@@ -141,7 +141,8 @@ ${parser.usage}
 
   说明:
   - onelap 必填；其余平台按 sync.uploadTo* 开关决定是否启用，也可用 --platform 临时覆盖
-  - Strava access token 过期会自动刷新，并把新 token 回写到本配置文件
+  - 配置文件支持 JSONC 注释（// 与 /* */），可直接参考 config.json.example 编写
+  - Strava access token 过期会自动刷新，并把新 token 回写到本配置文件（保留注释）
   - 配置含账号密码与 token，请勿提交到版本库
 
 示例:
