@@ -21,11 +21,11 @@
 | 跨平台分发 | `dart compile exe` 原生二进制 | 同一份代码产出 Linux/macOS/Windows 三个可执行文件 |
 | 代码组织 | 提取纯 Dart 包 `packages/sync_core`，App 与 CLI 共用 | standalone `dart pub get` 无法解析 `sdk: flutter`，CLI 不能 `path:` 依赖 Flutter 包 |
 | 输出格式 | 人类可读文本（默认）+ `--json` 机器可读 | 便于 cron 日志与脚本消费 |
-| **语言选择** | **保持 Dart（`dart compile exe` AOT）** | 目标设备为骁龙 845 手机 + Ubuntu Linux（ARM64，8 核 Kryo 385、4-8GB RAM、几十 GB 存储，资源充裕），Dart AOT 单文件产物实测空程序 5.3MB、完整程序约 10~20MB，零依赖"拷贝即跑"；换 Rust 需重写 3000+ 行同步逻辑（sync_engine 1328 行、onelap_client 885 行、xingzhe_client 435 行、outbase_client 248 行、FIT 解析、加密、坐标转换）且 App(Dart)/CLI(Rust) 永久双维护，体积收益 15MB→1MB 在该设备上无实际意义 |
+| **语言选择** | **保持 Dart（`dart compile exe` AOT）** | 目标设备为Linux ARM64 设备（8 核 Kryo 385、4-8GB RAM、几十 GB 存储，资源充裕），Dart AOT 单文件产物实测空程序 5.3MB、完整程序约 10~20MB，零依赖"拷贝即跑"；换 Rust 需重写 3000+ 行同步逻辑（sync_engine 1328 行、onelap_client 885 行、xingzhe_client 435 行、outbase_client 248 行、FIT 解析、加密、坐标转换）且 App(Dart)/CLI(Rust) 永久双维护，体积收益 15MB→1MB 在该设备上无实际意义 |
 
 ### 架构约束：目标 CPU
 
-- **目标设备：骁龙 845（SDM845）手机 + Ubuntu Linux（ARM64）**——Dart SDK 原生支持 linux-arm64，可直接在手机上装 Dart SDK 编译，或 CI 的 `ubuntu-24.04-arm` runner 交叉产出后拷贝
+- **目标设备：Linux ARM64 设备（如骁龙 845 手机 + Ubuntu）**——Dart SDK 原生支持 linux-arm64，可直接在手机上装 Dart SDK 编译，或 CI 的 `ubuntu-24.04-arm` runner 交叉产出后拷贝
 - 树莓派 **Zero 一代**：ARMv6，**现代 Dart 不支持**（Dart 仅支持 linux-arm ARMv7+ 与 arm64）——仅作参考，与当前目标无关
 - Linux x64 / macOS / Windows：原生支持，同一份代码分别编译
 

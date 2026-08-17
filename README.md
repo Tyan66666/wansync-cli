@@ -1,8 +1,8 @@
 # WanSync CLI
 
-把 [Onelap-Strava-GoGoGo](https://github.com/Anomaly-Lap/Onelap-Strava-GoGoGo)（WanSync App）的同步机制做成跨平台终端 CLI：导入 App 导出的配置 JSON，即可在服务器 / 终端 / 骁龙 845 手机（Ubuntu）上无人值守同步 OneLap 活动到 Strava / Xingzhe / Intervals.icu / Outbase。
+把 [顽爪爪 App（WanSync）](https://github.com/Anomaly-Lap/Onelap-Strava-GoGoGo) 的同步机制做成跨平台终端 CLI：导入 App 导出的配置 JSON，即可在 Linux 服务器 / 终端 / 树莓派等 ARM 设备上无人值守同步 OneLap 活动到 Strava / 行者 / Intervals.icu / Outbase。
 
-**零认证流程**：所有凭据来自 App 导出的配置文件，CLI 不做任何 OAuth / cookie 获取。
+**零认证流程**：所有凭据来自顽爪爪 App 导出的配置文件，CLI 不做任何 OAuth / cookie 获取。
 
 ## 快速开始
 
@@ -10,7 +10,7 @@
 # 编译单文件二进制（Linux / macOS / Windows / ARM64 各平台各自编译）
 dart compile exe packages/wansync_cli/bin/wansync.dart -o wansync
 
-# 导入 App 导出的配置 JSON 并同步
+# 导入顽爪爪 App 导出的配置 JSON 并同步
 ./wansync sync --config app-config.json
 
 # 只同步部分平台 / 覆盖回看天数 / JSON 输出
@@ -33,7 +33,7 @@ dart compile exe packages/wansync_cli/bin/wansync.dart -o wansync
 | artifact 名 | 适用设备 |
 |---|---|
 | `wansync-linux-x64` | 普通 Linux 服务器 / x64 电脑 |
-| `wansync-linux-arm64` | **骁龙 845 手机（Ubuntu）**、树莓派、ARM 盒子 |
+| `wansync-linux-arm64` | Linux ARM64 设备（树莓派、ARM 盒子等） |
 | `wansync-macos-arm64` | Mac（Apple Silicon） |
 | `wansync-windows-x64` | Windows |
 
@@ -42,7 +42,7 @@ dart compile exe packages/wansync_cli/bin/wansync.dart -o wansync
 **方式 B：在目标设备上自己编译**
 
 ```bash
-# 在手机 Ubuntu / 服务器上（需先装 Dart SDK）
+# 在 Linux 服务器 / ARM 设备上（需先装 Dart SDK）
 curl -fsSL https://dart.dev/install.sh | bash   # 或 apt install dart
 git clone https://github.com/你的账号/wansync-cli.git
 cd wansync-cli/packages/wansync_cli
@@ -58,14 +58,14 @@ dart compile exe bin/wansync.dart -o wansync
 ```
 
 > 注意：编译出的二进制只能在**相同操作系统 + 相同 CPU 架构**上运行。
-> 例如 macOS 上编的（Mach-O）不能拷到 Linux 手机上；x64 编的不能拷到 ARM 设备上。
-> 手机场景务必用方式 A 的 `wansync-linux-arm64` 或方式 B 在手机上直接编。
+> 例如 macOS 上编的（Mach-O）不能拷到 Linux 设备上；x64 编的不能拷到 ARM 设备上。
+> ARM 设备（树莓派等）请用方式 A 的 `wansync-linux-arm64`，或在设备上直接编译。
 
-## 在骁龙 845 手机（Ubuntu）上运行
+## 在 Linux 上运行（含定时同步）
 
 ```bash
-# 1. 把二进制和配置放到手机（adb 或 U 盘均可）
-#    配置 = App「设置 → 导出配置」生成的 JSON 文件
+# 1. 把二进制和配置放到设备上（scp / U 盘均可）
+#    配置 = 顽爪爪 App「设置 → 导出配置」生成的 JSON 文件
 mkdir -p ~/wansync ~/.wansync
 cp wansync ~/wansync/
 cp app-config.json ~/wansync/
@@ -86,7 +86,7 @@ crontab -e
 
 ## 配置文件
 
-`--config` 指向 **App「设置 → 导出配置」生成的 JSON**，也可手工编写。仓库根目录附有 `config.json.example`（带完整注释的模板），**复制后填入真实值即可直接使用——配置支持 JSONC 注释（`//` 与 `/* */`），无需删除注释**。结构如下：
+`--config` 指向 **[顽爪爪 App](https://github.com/Anomaly-Lap/Onelap-Strava-GoGoGo)「设置 → 导出配置」生成的 JSON**，也可手工编写。仓库根目录附有 `config.json.example`（带完整注释的模板），**复制后填入真实值即可直接使用——配置支持 JSONC 注释（`//` 与 `/* */`），无需删除注释**。结构如下：
 
 ```json
 {
@@ -125,7 +125,7 @@ crontab -e
 | `onelap` | **必填**（数据源）。其余平台按 `sync.uploadTo*` 开关决定是否启用 |
 | `strava.uploadMode` | CLI **仅支持 `"api"`**；`web` 模式会直接报配置错误 |
 | Strava token | access token 过期时 CLI 自动用 refresh token 刷新，并把新 token **原地回写**到配置文件 |
-| `xingzhe` / `outbase` | 需先在 App 中登录（获得 sessionId）再导出；sessionId 过期后需在 App 重新登录导出 |
+| `xingzhe` / `outbase` | 需先在顽爪爪 App 中登录（获得 sessionId）再导出；sessionId 过期后需在顽爪爪 App 重新登录导出 |
 | `--platform` | 可临时覆盖 `uploadTo*` 开关，不修改配置文件 |
 | `--gcj-correction` / `--no-gcj-correction` | 临时覆盖 `sync.gcjCorrectionEnabled`（GCJ-02 → WGS-84 坐标转换），不修改配置文件 |
 

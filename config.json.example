@@ -1,7 +1,7 @@
 {
   // 本文件是 JSONC：CLI 可直接解析（支持 // 与 /* */ 注释），
   // 复制为 app-config.json 并填入真实值即可使用，无需删除注释。
-  // 注意：token 回写（Strava 刷新 / 骑行家 sessionId 更新）会原地更新对应字段并保留注释。
+  // 注意：token 回写（Strava 刷新 / 行者 sessionId 更新）会原地更新对应字段并保留注释。
 
   // 配置文件格式版本，必须为 1（程序据此校验，其他版本会报"版本不受支持"）
   "version": 1,
@@ -32,11 +32,11 @@
       "expiresAt": ""
     },
 
-    // ============ 骑行家（可选）============
-    // sessionId 需先在 WanSync App 登录骑行家后导出获得
+    // ============ 行者（可选）============
+    // sessionId 需先在 顽爪爪 App 登录行者后导出获得
     "xingzhe": {
-      "username": "你的骑行家账号（可选）",
-      "password": "你的骑行家密码（可选）",
+      "username": "你的行者账号（可选）",
+      "password": "你的行者密码（可选）",
       "sessionId": "App 登录后导出的 sessionId"
     },
 
@@ -48,7 +48,7 @@
     },
 
     // ============ Outbase（可选）============
-    // sessionId 需先在 WanSync App 登录 Outbase 后导出获得
+    // sessionId 需先在 顽爪爪 App 登录 Outbase 后导出获得
     "outbase": {
       "sessionId": "App 登录后导出的 sessionId"
     },
