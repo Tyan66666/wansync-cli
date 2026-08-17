@@ -17,3 +17,9 @@ dist/
 
 # Local state (never commit credentials)
 .wansync/
+
+# Real config files — NEVER commit these (contain credentials)
+app-config*.json
+config.json
+*_config.json
+!config.json.example

@@ -1,0 +1,65 @@
+{
+  // 配置文件格式版本，必须为 1（程序据此校验，其他版本会报"版本不受支持"）
+  "version": 1,
+
+  // App 版本号，仅作记录，CLI 不校验
+  "appVersion": "1.0.23",
+
+  // 导出时间（ISO 8601），仅作记录
+  "exportedAt": "2026-08-16T00:00:00.000Z",
+
+  "settings": {
+    // ============ 必填：OneLap 数据源账号 ============
+    "onelap": {
+      "username": "你的OneLap账号",
+      "password": "你的OneLap密码"
+    },
+
+    // ============ Strava（仅支持 uploadMode: "api"）============
+    // 在 Strava 开发者后台 https://www.strava.com/settings/api 创建应用后获取
+    // CLI 不做 OAuth 授权流程，需要 App 或手工获取过 refreshToken 后填入；
+    // accessToken/expiresAt 可留空，CLI 会用 refreshToken 自动刷新并回写本文件
+    "strava": {
+      "uploadMode": "api",
+      "clientId": "你的Strava client_id",
+      "clientSecret": "你的Strava client_secret",
+      "refreshToken": "你的Strava refresh_token",
+      "accessToken": "",
+      "expiresAt": ""
+    },
+
+    // ============ 骑行家（可选）============
+    // sessionId 需先在 WanSync App 登录骑行家后导出获得
+    "xingzhe": {
+      "username": "你的骑行家账号（可选）",
+      "password": "你的骑行家密码（可选）",
+      "sessionId": "App 登录后导出的 sessionId"
+    },
+
+    // ============ Intervals.icu（可选）============
+    // athleteId 在 https://intervals.icu/settings 页面获取；apiKey 在 Settings → API 生成
+    "intervalsIcu": {
+      "athleteId": "你的 athleteId",
+      "apiKey": "你的 apiKey"
+    },
+
+    // ============ Outbase（可选）============
+    // sessionId 需先在 WanSync App 登录 Outbase 后导出获得
+    "outbase": {
+      "sessionId": "App 登录后导出的 sessionId"
+    },
+
+    // ============ 同步参数 ============
+    "sync": {
+      // 每次同步默认向后回看的天数（可用 --lookback 覆盖）
+      "lookbackDays": 3,
+      // GCJ-02 → WGS-84 坐标转换（国内地图坐标修正，可用 --gcj-correction / --no-gcj-correction 强制覆盖）
+      "gcjCorrectionEnabled": false,
+      // 各平台上送开关：true = 启用
+      "uploadToStrava": true,
+      "uploadToXingzhe": false,
+      "uploadToIntervalsIcu": false,
+      "uploadToOutbase": false
+    }
+  }
+}
