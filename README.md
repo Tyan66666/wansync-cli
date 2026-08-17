@@ -220,6 +220,23 @@ fi
 
 注意：`--json` 只影响 stdout 的结果输出；参数 / 配置 / 运行时错误仍走 stderr，格式与文本模式一致。
 
+## 示例脚本：失败通知
+
+仓库附有 [`scripts/notify-on-failure.sh`](scripts/notify-on-failure.sh)，演示 `--json` + 退出码的完整用法：成功静默、失败解析 JSON 明细并可选推送通知（兼容 [ntfy.sh](https://ntfy.sh)），出错时透传退出码。
+
+```bash
+# 基本用法（结果 JSON 与日志存到 ~/.wansync/logs/）
+./scripts/notify-on-failure.sh -c app-config.json
+
+# 设置通知 URL（ntfy.sh 示例）——失败/出错时推送
+WANSYNC_NOTIFY_URL=https://ntfy.sh/你的主题名 ./scripts/notify-on-failure.sh -c app-config.json
+
+# 配合 cron 定时跑（每 30 分钟）
+*/30 * * * * WANSYNC_NOTIFY_URL=https://ntfy.sh/你的主题名 /path/to/wansync-cli/scripts/notify-on-failure.sh -c /path/to/app-config.json --lookback 1
+```
+
+环境变量：`WANSYNC_BIN`（二进制路径）、`WANSYNC_NOTIFY_URL`（通知 URL）、`WANSYNC_LOG_DIR`（日志目录，默认 `~/.wansync/logs`）。依赖 `bash >= 4`，仅设置通知 URL 时需要 `curl`。
+
 ## 仓库结构
 
 ```
