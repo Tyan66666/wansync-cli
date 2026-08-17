@@ -16,6 +16,10 @@ dart compile exe packages/wansync_cli/bin/wansync.dart -o wansync
 # 只同步部分平台 / 覆盖回看天数 / JSON 输出
 ./wansync sync -c app-config.json --platform strava,xingzhe --lookback 7
 ./wansync sync -c app-config.json --json
+
+# 坐标转换覆盖：强制开启 / 强制关闭（默认用配置 sync.gcjCorrectionEnabled）
+./wansync sync -c app-config.json --gcj-correction
+./wansync sync -c app-config.json --no-gcj-correction
 ```
 
 退出码：`0` 无失败 · `1` 有失败 · `2` 参数错误 · `3` 配置无效 · `4` 运行时错误。
@@ -63,6 +67,7 @@ dart compile exe packages/wansync_cli/bin/wansync.dart -o wansync
 | Strava token | access token 过期时 CLI 自动用 refresh token 刷新，并把新 token **原地回写**到配置文件 |
 | `xingzhe` / `outbase` | 需先在 App 中登录（获得 sessionId）再导出；sessionId 过期后需在 App 重新登录导出 |
 | `--platform` | 可临时覆盖 `uploadTo*` 开关，不修改配置文件 |
+| `--gcj-correction` / `--no-gcj-correction` | 临时覆盖 `sync.gcjCorrectionEnabled`（GCJ-02 → WGS-84 坐标转换），不修改配置文件 |
 
 ## 仓库结构
 

@@ -12,6 +12,12 @@ class InvalidConfigException implements Exception {
   String toString() => message;
 }
 
+/// GCJ-02 → WGS-84 坐标转换开关解析：
+/// CLI 显式指定（--gcj-correction / --no-gcj-correction）优先，否则用配置值。
+bool resolveGcjCorrection(bool? cliValue, bool configValue) {
+  return cliValue ?? configValue;
+}
+
 /// 读取配置文件 JSON 并校验（AppConfig.fromJson 自带版本校验）。
 AppConfig loadConfig(String path) {
   final File file = File(path);
@@ -181,8 +187,10 @@ Future<SyncSummary> runSync(CliOptions options, AppConfig config) async {
     intervalsIcuClient: intervalsIcu,
     outbaseClient: outbase,
     stateStore: stateStore,
-    gcjCorrectionEnabled:
-        get(SettingsService.keyGcjCorrectionEnabled) == 'true',
+    gcjCorrectionEnabled: resolveGcjCorrection(
+      options.gcjCorrection,
+      get(SettingsService.keyGcjCorrectionEnabled) == 'true',
+    ),
     rewriteService: rewriteService,
     uploadToStrava: uploadToStrava,
     uploadToXingzhe: uploadToXingzhe,

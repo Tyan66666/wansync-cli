@@ -60,6 +60,31 @@ void main() {
       final home = Platform.environment['HOME']!;
       expect(opts.stateDir, '$home/.wansync');
     });
+
+    test('gcj-correction 三态：不传为 null', () {
+      final opts = parseArgs(['sync', '--config', 'a.json'])!;
+      expect(opts.gcjCorrection, isNull);
+    });
+
+    test('gcj-correction 三态：--gcj-correction 为 true', () {
+      final opts = parseArgs([
+        'sync',
+        '--config',
+        'a.json',
+        '--gcj-correction',
+      ])!;
+      expect(opts.gcjCorrection, isTrue);
+    });
+
+    test('gcj-correction 三态：--no-gcj-correction 为 false', () {
+      final opts = parseArgs([
+        'sync',
+        '--config',
+        'a.json',
+        '--no-gcj-correction',
+      ])!;
+      expect(opts.gcjCorrection, isFalse);
+    });
   });
 
   group('loadConfig', () {
@@ -113,6 +138,21 @@ void main() {
           ),
         ),
       );
+    });
+  });
+
+  group('resolveGcjCorrection', () {
+    test('CLI 未指定时用配置值', () {
+      expect(resolveGcjCorrection(null, true), isTrue);
+      expect(resolveGcjCorrection(null, false), isFalse);
+    });
+
+    test('CLI 强制开启覆盖配置关闭', () {
+      expect(resolveGcjCorrection(true, false), isTrue);
+    });
+
+    test('CLI 强制关闭覆盖配置开启', () {
+      expect(resolveGcjCorrection(false, true), isFalse);
     });
   });
 

@@ -15,6 +15,13 @@ CliOptions? parseArgs(List<String> args) {
     )
     ..addFlag('json', help: '以 JSON 输出结果', negatable: false)
     ..addOption('state-dir', help: 'state.json 与临时目录位置（默认 ~/.wansync）')
+    ..addFlag(
+      'gcj-correction',
+      help:
+          'GCJ-02 → WGS-84 坐标转换（默认用配置 sync.gcjCorrectionEnabled，'
+          '--gcj-correction 强制开 / --no-gcj-correction 强制关）',
+      defaultsTo: null,
+    )
     ..addFlag('verbose', abbr: 'v', help: '详细输出', negatable: false)
     ..addFlag('help', abbr: 'h', help: '显示帮助', negatable: false)
     ..addFlag('version', help: '显示版本', negatable: false);
@@ -79,6 +86,7 @@ CliOptions? parseArgs(List<String> args) {
     jsonOutput: parsed['json'] as bool,
     stateDir: stateDir,
     verbose: parsed['verbose'] as bool,
+    gcjCorrection: parsed['gcj-correction'] as bool?,
   );
 }
 

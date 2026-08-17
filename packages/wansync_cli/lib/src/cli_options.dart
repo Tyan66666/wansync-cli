@@ -18,6 +18,10 @@ class CliOptions {
   final String stateDir;
   final bool verbose;
 
+  /// GCJ-02 → WGS-84 坐标转换覆盖开关：
+  /// null = 用配置文件 sync.gcjCorrectionEnabled；true/false = 强制开/关。
+  final bool? gcjCorrection;
+
   const CliOptions({
     required this.configPath,
     this.lookbackDays,
@@ -25,6 +29,7 @@ class CliOptions {
     this.jsonOutput = false,
     this.stateDir = '',
     this.verbose = false,
+    this.gcjCorrection,
   });
 }
 
