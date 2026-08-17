@@ -21,6 +21,8 @@ export 'services/settings_service.dart';
 export 'services/state_store.dart';
 export 'services/strava_client.dart';
 export 'services/strava_upload_client.dart';
+export 'services/strava_web_client.dart';
+export 'services/strava_web_sync_adapter.dart';
 export 'services/sync_engine.dart';
 export 'services/sync_failure_formatter.dart';
 export 'services/xingzhe_client.dart';

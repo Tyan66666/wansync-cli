@@ -142,9 +142,7 @@ void main() {
     });
 
     test('JSONC：行注释与块注释可解析', () {
-      final f = write(
-        'commented.json',
-        '''
+      final f = write('commented.json', '''
 {
   // 行注释
   "version": 1, /* 块注释 */
@@ -158,8 +156,7 @@ void main() {
     }
   }
 }
-''',
-      );
+''');
       final config = loadConfig(f.path);
       expect(config.version, 1);
       expect(config.settings['onelap']['username'], 'u');
@@ -168,9 +165,7 @@ void main() {
     });
 
     test('JSONC：URL 与转义引号不被注释逻辑误伤', () {
-      final f = write(
-        'url.json',
-        r'''
+      final f = write('url.json', r'''
 {
   "version": 1,
   "settings": {
@@ -178,8 +173,7 @@ void main() {
     "sync": { "lookbackDays": 3 }
   }
 }
-''',
-      );
+''');
       final config = loadConfig(f.path);
       final onelap = config.settings['onelap'] as Map<String, dynamic>;
       expect(onelap['username'], 'a"b');
@@ -234,7 +228,7 @@ void main() {
       );
     });
 
-    test('Strava web 模式：抛 InvalidConfigException，不发网络请求', () async {
+    test('Strava web 模式缺 webCookies：抛 InvalidConfigException，不发网络请求', () async {
       final f = File('${tmp.path}/web.json');
       f.writeAsStringSync(
         jsonEncode({
@@ -251,9 +245,31 @@ void main() {
         () => runSync(opts(f.path), config),
         throwsA(
           predicate(
-            (e) => e is InvalidConfigException && e.message.contains('web 模式'),
+            (e) =>
+                e is InvalidConfigException && e.message.contains('webCookies'),
           ),
         ),
+      );
+    });
+
+    test('Strava web 模式带 webCookies：装配 adapter 并检查会话（网络路径）', () async {
+      final f = File('${tmp.path}/web-cookies.json');
+      f.writeAsStringSync(
+        jsonEncode({
+          'version': 1,
+          'settings': {
+            'onelap': {'username': 'u', 'password': 'p'},
+            'strava': {'uploadMode': 'web', 'webCookies': 'session=abc'},
+            'sync': {'uploadToStrava': true},
+          },
+        }),
+      );
+      final config = loadConfig(f.path);
+      // 会先 OneLap login（网络失败抛运行时异常）——证明 webCookies 校验已通过，
+      // 而不是在预检阶段报缺 cookie。
+      await expectLater(
+        runSync(opts(f.path), config),
+        throwsA(isA<Exception>()),
       );
     });
   });
@@ -302,8 +318,7 @@ void main() {
 
     test('带注释的配置：回写后注释保留', () async {
       final f = File('${tmp.path}/commented.json');
-      f.writeAsStringSync(
-        '''
+      f.writeAsStringSync('''
 {
   "version": 1, // 版本注释
   "appVersion": "1.0.0",
@@ -316,8 +331,7 @@ void main() {
     }
   }
 }
-''',
-      );
+''');
       final config = loadConfig(f.path);
 
       await writeBackStravaTokens(
@@ -338,8 +352,7 @@ void main() {
       expect(raw, contains('"refreshToken": "newr"'));
       expect(raw, contains('"expiresAt": "9999999999"'));
       // 仍是合法 JSONC
-      final reloaded =
-          json5Decode(raw) as Map<String, dynamic>;
+      final reloaded = json5Decode(raw) as Map<String, dynamic>;
       final strava = reloaded['settings']['strava'] as Map<String, dynamic>;
       expect(strava['accessToken'], 'new');
     });

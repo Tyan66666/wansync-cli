@@ -110,13 +110,14 @@ ${parser.usage}
         "username": "...",
         "password": "..."
       },
-      "strava": {                                // Strava 仅支持 uploadMode: "api"
+      "strava": {                                // uploadMode: "api"（token 自动刷新）或 "web"（cookie）
         "uploadMode": "api",
         "clientId": "...",
         "clientSecret": "...",
         "refreshToken": "...",
         "accessToken": "...",
-        "expiresAt": "..."
+        "expiresAt": "...",
+        "webCookies": "..."                      // web 模式：App 登录后导出的 cookie
       },
       "xingzhe": {                               // 需先在 App 登录获得 sessionId
         "sessionId": "..."
@@ -141,8 +142,8 @@ ${parser.usage}
 
   说明:
   - onelap 必填；其余平台按 sync.uploadTo* 开关决定是否启用，也可用 --platform 临时覆盖
+  - Strava 支持两种模式：api（token 自动刷新并回写）与 web（webCookies，过期需在 App 重新导出）
   - 配置文件支持 JSONC 注释（// 与 /* */），可直接参考 config.json.example 编写
-  - Strava access token 过期会自动刷新，并把新 token 回写到本配置文件（保留注释）
   - 配置含账号密码与 token，请勿提交到版本库
 
 示例:

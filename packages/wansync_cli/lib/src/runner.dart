@@ -36,9 +36,7 @@ AppConfig loadConfig(String path) {
   try {
     json = json5Decode(content) as Map<String, dynamic>;
   } catch (_) {
-    throw const InvalidConfigException(
-      '配置文件格式无效：不是合法 JSON（支持 // 与 /* */ 注释）',
-    );
+    throw const InvalidConfigException('配置文件格式无效：不是合法 JSON（支持 // 与 /* */ 注释）');
   }
   try {
     return AppConfig.fromJson(json);
@@ -56,16 +54,20 @@ String? replaceStringValueInSection(
   String key,
   String newValue,
 ) {
-  final sectionMatch =
-      RegExp('"${RegExp.escape(sectionKey)}"\\s*:\\s*\\{').firstMatch(source);
+  final sectionMatch = RegExp(
+    '"${RegExp.escape(sectionKey)}"\\s*:\\s*\\{',
+  ).firstMatch(source);
   if (sectionMatch == null) return null;
   final sectionBody = source.substring(sectionMatch.end);
   final keyPattern = RegExp('"${RegExp.escape(key)}"\\s*:\\s*"([^"]*)"');
   final keyMatch = keyPattern.firstMatch(sectionBody);
   if (keyMatch == null) return null;
   final absStart = sectionMatch.end + keyMatch.start;
-  return source.replaceRange(absStart, sectionMatch.end + keyMatch.end,
-      '"$key": "$newValue"');
+  return source.replaceRange(
+    absStart,
+    sectionMatch.end + keyMatch.end,
+    '"$key": "$newValue"',
+  );
 }
 
 /// 把 strava 段的新 token 回写到 --config 指向的 JSON 文件（原地更新，保留注释）。
@@ -91,7 +93,11 @@ Future<void> writeBackStravaTokens(
     'expiresAt': '$expiresAt',
   }.entries) {
     final next = replaceStringValueInSection(
-        updated, 'strava', entry.key, entry.value);
+      updated,
+      'strava',
+      entry.key,
+      entry.value,
+    );
     if (next == null) {
       allReplaced = false;
       break;
@@ -151,9 +157,12 @@ Future<SyncSummary> runSync(CliOptions options, AppConfig config) async {
   if (get(SettingsService.keyOneLapUsername).isEmpty) {
     throw const InvalidConfigException('配置缺少 OneLap 账号（onelap.username）');
   }
-  if (uploadToStrava && get(SettingsService.keyStravaUploadMode) == 'web') {
+  final stravaUploadMode = get(SettingsService.keyStravaUploadMode);
+  if (uploadToStrava &&
+      stravaUploadMode == 'web' &&
+      get(SettingsService.keyStravaWebCookies).isEmpty) {
     throw const InvalidConfigException(
-      '配置中 Strava 为 web 模式，CLI 仅支持 API 模式（请在 App 中重新导出）',
+      '配置中 Strava 为 web 模式但缺少 webCookies（请在 App 中登录 Strava 网页版后重新导出）',
     );
   }
 
@@ -165,30 +174,41 @@ Future<SyncSummary> runSync(CliOptions options, AppConfig config) async {
   );
   await oneLap.login();
 
-  // Strava（仅 API 模式）
-  StravaClient? strava;
+  // Strava（API 模式 或 web 模式）
+  StravaUploadClient? strava;
   if (uploadToStrava) {
-    strava = StravaClient(
-      clientId: get(SettingsService.keyStravaClientId),
-      clientSecret: get(SettingsService.keyStravaClientSecret),
-      refreshToken: get(SettingsService.keyStravaRefreshToken),
-      accessToken: get(SettingsService.keyStravaAccessToken),
-      expiresAt: int.tryParse(get(SettingsService.keyStravaExpiresAt)) ?? 0,
-      onTokenRefreshed:
-          ({
-            required String accessToken,
-            required String refreshToken,
-            required int expiresAt,
-          }) {
-            return writeBackStravaTokens(
-              options.configPath,
-              config,
-              accessToken: accessToken,
-              refreshToken: refreshToken,
-              expiresAt: expiresAt,
-            );
-          },
-    );
+    if (stravaUploadMode == 'web') {
+      final webCookies = get(SettingsService.keyStravaWebCookies);
+      final webClient = StravaWebClient(cookies: webCookies);
+      if (!await webClient.isSessionValid()) {
+        throw const InvalidConfigException(
+          'Strava 网页登录已过期，请在 App 中重新登录后重新导出配置',
+        );
+      }
+      strava = StravaWebSyncAdapter(cookies: webCookies);
+    } else {
+      strava = StravaClient(
+        clientId: get(SettingsService.keyStravaClientId),
+        clientSecret: get(SettingsService.keyStravaClientSecret),
+        refreshToken: get(SettingsService.keyStravaRefreshToken),
+        accessToken: get(SettingsService.keyStravaAccessToken),
+        expiresAt: int.tryParse(get(SettingsService.keyStravaExpiresAt)) ?? 0,
+        onTokenRefreshed:
+            ({
+              required String accessToken,
+              required String refreshToken,
+              required int expiresAt,
+            }) {
+              return writeBackStravaTokens(
+                options.configPath,
+                config,
+                accessToken: accessToken,
+                refreshToken: refreshToken,
+                expiresAt: expiresAt,
+              );
+            },
+      );
+    }
   }
 
   // Xingzhe
@@ -205,7 +225,11 @@ Future<SyncSummary> runSync(CliOptions options, AppConfig config) async {
             ? configFile.readAsStringSync()
             : '';
         final updated = replaceStringValueInSection(
-            source, 'xingzhe', 'sessionId', sessionId);
+          source,
+          'xingzhe',
+          'sessionId',
+          sessionId,
+        );
         if (updated != null) {
           await configFile.writeAsString(updated);
         } else {

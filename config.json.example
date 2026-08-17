@@ -19,17 +19,20 @@
       "password": "你的OneLap密码"
     },
 
-    // ============ Strava（仅支持 uploadMode: "api"）============
-    // 在 Strava 开发者后台 https://www.strava.com/settings/api 创建应用后获取
-    // CLI 不做 OAuth 授权流程，需要 App 或手工获取过 refreshToken 后填入；
-    // accessToken/expiresAt 可留空，CLI 会用 refreshToken 自动刷新并回写本文件
+    // ============ Strava（uploadMode: "api" 或 "web"）============
+    // api 模式：在 Strava 开发者后台 https://www.strava.com/settings/api 创建应用后获取
+    //   CLI 不做 OAuth 授权流程，需要 App 或手工获取过 refreshToken 后填入；
+    //   accessToken/expiresAt 可留空，CLI 会用 refreshToken 自动刷新并回写本文件
+    // web 模式：用 App 登录 Strava 网页版后导出的 webCookies（无需 clientId/token）
+    //   注意 webCookies 会过期，过期后需在 App 重新登录导出
     "strava": {
       "uploadMode": "api",
       "clientId": "你的Strava client_id",
       "clientSecret": "你的Strava client_secret",
       "refreshToken": "你的Strava refresh_token",
       "accessToken": "",
-      "expiresAt": ""
+      "expiresAt": "",
+      "webCookies": ""
     },
 
     // ============ 行者（可选）============

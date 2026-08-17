@@ -123,7 +123,7 @@ crontab -e
 | 项目 | 说明 |
 |------|------|
 | `onelap` | **必填**（数据源）。其余平台按 `sync.uploadTo*` 开关决定是否启用 |
-| `strava.uploadMode` | CLI **仅支持 `"api"`**；`web` 模式会直接报配置错误 |
+| `strava.uploadMode` | `"api"`（token 自动刷新并回写）或 `"web"`（webCookies 上传，cookie 过期需在 App 重新导出配置） |
 | Strava token | access token 过期时 CLI 自动用 refresh token 刷新，并把新 token **原地回写**到配置文件 |
 | `xingzhe` / `outbase` | 需先在顽爪爪 App 中登录（获得 sessionId）再导出；sessionId 过期后需在顽爪爪 App 重新登录导出 |
 | `--platform` | 可临时覆盖 `uploadTo*` 开关，不修改配置文件 |
@@ -138,7 +138,7 @@ crontab -e
 | `0` | 成功 | 同步完成，无失败 |
 | `1` | 同步中有失败 | 部分活动上传失败（其余平台照常同步） |
 | `2` | 参数错误 | 缺 `--config`、`--lookback` 非整数、`--platform` 未知平台 |
-| `3` | 配置无效 | 文件不存在、非法 JSON、版本不受支持、Strava web 模式、缺 OneLap 账号 |
+| `3` | 配置无效 | 文件不存在、非法 JSON、版本不受支持、web 模式缺 webCookies、Strava 网页会话过期、缺 OneLap 账号 |
 | `4` | 运行时错误 | 网络失败、OneLap 登录失败、未捕获异常 |
 
 stderr 示例：
