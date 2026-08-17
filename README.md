@@ -22,7 +22,7 @@ dart compile exe packages/wansync_cli/bin/wansync.dart -o wansync
 ./wansync sync -c app-config.json --no-gcj-correction
 ```
 
-退出码：`0` 无失败 · `1` 有失败 · `2` 参数错误 · `3` 配置无效 · `4` 运行时错误。
+退出码与错误处理的完整说明见下文「退出码与错误处理」章节。
 
 ## 获取二进制（按你的设备选一种）
 
@@ -128,6 +128,97 @@ crontab -e
 | `xingzhe` / `outbase` | 需先在顽爪爪 App 中登录（获得 sessionId）再导出；sessionId 过期后需在顽爪爪 App 重新登录导出 |
 | `--platform` | 可临时覆盖 `uploadTo*` 开关，不修改配置文件 |
 | `--gcj-correction` / `--no-gcj-correction` | 临时覆盖 `sync.gcjCorrectionEnabled`（GCJ-02 → WGS-84 坐标转换），不修改配置文件 |
+
+## 退出码与错误处理
+
+**设计原则：stdout 只输出结果，所有错误信息走 stderr** —— 管道 / 重定向不会被错误信息污染。
+
+| 退出码 | 含义 | 触发场景 |
+|---|---|---|
+| `0` | 成功 | 同步完成，无失败 |
+| `1` | 同步中有失败 | 部分活动上传失败（其余平台照常同步） |
+| `2` | 参数错误 | 缺 `--config`、`--lookback` 非整数、`--platform` 未知平台 |
+| `3` | 配置无效 | 文件不存在、非法 JSON、版本不受支持、Strava web 模式、缺 OneLap 账号 |
+| `4` | 运行时错误 | 网络失败、OneLap 登录失败、未捕获异常 |
+
+stderr 示例：
+
+```
+配置无效: 配置文件不存在: /nonexistent.json
+配置无效: 配置文件格式无效：不是合法 JSON（支持 // 与 /* */ 注释）
+配置无效: 配置文件版本 99 不受支持
+运行时错误: Exception: OneLap login failed: user is not exists
+```
+
+同步中有失败时，退出码为 `1` 且 stdout 输出统计与逐条失败明细（单平台失败不影响其他平台）：
+
+```
+OneLap 获取: 3 个活动
+本地判重跳过: 1
+成功上传: 1
+失败: 1
+
+Strava: 成功 1 | 失败 1
+Xingzhe: 成功 0 | 判重 1
+Intervals.icu: 未启用
+Outbase: 未启用
+
+失败明细:
+  - Strava: 2026-08-15 · 32.5km · 186m — DioException: Connection timed out
+```
+
+## JSON 输出模式（--json）
+
+加 `--json` 后，stdout 输出结构化 JSON（替代人类可读文本），适合脚本 / cron / 自动化消费。结构与字段：
+
+```json
+{
+  "fetched": 3,              // OneLap 拉取到的活动数
+  "deduped": 1,              // 本地判重跳过（不算成功/失败）
+  "success": 1,              // 本次实际成功上传数
+  "failed": 1,               // 本次实际失败数
+  "abortedReason": null,     // 非 null 时同步中止，如 "risk-control"（OneLap 风控）
+  "failureReasons": [        // 失败原因的简单文本列表
+    "上传失败 (a.fit): DioException timeout"
+  ],
+  "platforms": {
+    "strava": {
+      "success": 1,          // 该平台成功数
+      "failed": 1,           // 该平台失败数
+      "deduped": 0,          // 该平台判重跳过数
+      "failures": [          // 失败活动明细
+        {
+          "fingerprint": "x",
+          "date": "2026-08-15",   // 活动日期
+          "distance": "32.5km",   // 距离
+          "ascent": "186m",       // 爬升
+          "error": "DioException: Connection timed out"
+        }
+      ]
+    },
+    "xingzhe":      { "success": 0, "failed": 0, "deduped": 1, "failures": [] },
+    "intervalsIcu": { "success": 0, "failed": 0, "deduped": 0, "failures": [] },
+    "outbase":      { "success": 0, "failed": 0, "deduped": 0, "failures": [] }
+  },
+  "syncedAt": "2026-08-17T08:00:00.000Z"   // 本次同步时间（ISO 8601）
+}
+```
+
+脚本判断逻辑（配合退出码）：
+
+```bash
+wansync sync -c app-config.json --json > result.json
+code=$?
+if [ $code -eq 0 ]; then
+  echo "全部同步成功"
+elif [ $code -eq 1 ]; then
+  echo "有失败: $(python3 -c 'import json;print(json.load(open("result.json"))["failureReasons"])')"
+else
+  echo "出错（exit $code），stderr 中有原因"
+fi
+```
+
+注意：`--json` 只影响 stdout 的结果输出；参数 / 配置 / 运行时错误仍走 stderr，格式与文本模式一致。
 
 ## 仓库结构
 
