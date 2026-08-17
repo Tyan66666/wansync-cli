@@ -696,7 +696,7 @@ class SyncEngine {
     String recordKey,
   ) async {
     try {
-      return makeFingerprint(fitFile, startTime, recordKey);
+      return await makeFingerprint(fitFile, startTime, recordKey);
     } catch (_) {
       return null;
     }
